@@ -33,9 +33,14 @@ char const *kDefaultViolationMessage= "default-violation";
 // 2. specificTransactions
 //    A hashmap where the (k, v) is (txnhash, vector of 'similar' transactions). 
 struct User {
+    // Class constructor to create accounts.
     User(nlohmann::json acc): account(acc) {};
+    // JSON account obj with 2 fields in general, "active-card" and "available-limit".
     nlohmann::json account;
+    // Vector of transaction jsons which are sequential.
     std::vector<nlohmann::json> sequencialTransactions;
+    // Hashmap of transactions in sequencial order.
+    // Hashes are calculated using std::hash and concatenation of the json in string form except for "time" field.
     std::unordered_map<std::string, std::vector<nlohmann::json> > specificTransactions; 
 };
 

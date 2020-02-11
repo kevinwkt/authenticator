@@ -12,40 +12,31 @@
 #include <sstream>
 #include <vector>
 
-// Function that receives a Generic Error and converts it into violation message.
+// Converts error enum into corresponding violation message.
 std::string ErrorToViolation(GenericErrors error) {
-    std::string violation;
     switch(error) {
         case kOk:
-            violation = kOkMessage;
-            break;
+            return kOkMessage;
         case kAccountAlreadyInitialized:
-            violation = kAccountAlreadyInitializedMessage;
-            break;
+            return kAccountAlreadyInitializedMessage;
         case kAccountNotInitialized:
-            violation = kAccountNotInitializedMessage;
-            break;
+            return kAccountNotInitializedMessage;
         case kCardNotActive:
-            violation = kCardNotActiveMessage;
-            break;
+            return kCardNotActiveMessage;
         case kInsufficientLimit:
-            violation = kInsufficientLimitMessage;
-            break;
+            return kInsufficientLimitMessage;
         case kHighFrequencySmallInterval:
-            violation = kHighFrequencySmallIntervalMessage;
-            break;
+            return kHighFrequencySmallIntervalMessage;
         case kDoubledTransaction:
-            violation = kDoubledTransactionMessage;
-            break;
+            return kDoubledTransactionMessage;
         default:
-            violation = kDefaultViolationMessage;
-            break;
+            return kDefaultViolationMessage;
     }
-    return violation;
 };
 
 // Parses ISO8601 from string format and returns a time_t.
 // Assumes date is always in the same format like "2019-02-13T10:00:00.000Z".
+// Caveat: based on *nix time. Must support this format.
 std::time_t ParseISO8601(const std::string& dateStr) {
     int y,M,d,h,m;
     float s;
@@ -59,49 +50,27 @@ std::time_t ParseISO8601(const std::string& dateStr) {
     time.tm_sec = (int)s;
     return timegm(&time);
 }
-// std::time_t ParseISO8601(const std::string& dateStr) {
-//     std::tm time= {};
-//     std::istringstream ss(dateStr);
-//     ss >> std::get_time(&time, "%Y-%m-%dT%H:%M:%S");
-//     if (ss.fail()) {
-//         throw std::runtime_error{"failed to parse time string"};
-//     }
-    
-//     std::cout << std::put_time(&time, "%c") << '\n';
-//     return timegm(&time);
-// }
 
-// Function that receives a sorted vector of the same transaction type and verifies if within a specified 'time' and
+// if within a specified 'time' and
 // allowed number of transactions, a transaction can be processed.
-bool IsTransactionFrequent(const std::vector<nlohmann::json> &txn, nlohmann::json incoming_transaction, const int window = kFrequencyWindow, const int allowed = kMaxFrequency) {
-    // if((int)(txn.size()-allowed) < 0) {
-    //     std::cout << "Returning false\n";
-    // } else {
-    //     std::cout << "comparing " << (int)txn.size() << " with " << allowed << " wierd " << (int)(txn.size()-allowed) << "\n";
-    //     std::cout << "else\n";
-    //     std::cout << (long long)ParseISO8601(txn[txn.size()-allowed]["time"]) << "\n";
-    //     std::cout << (long long)ParseISO8601(incoming_transaction["time"]) << "\n";
-    //     if(
-    //         (long long)ParseISO8601(incoming_transaction["time"]) - (long long)ParseISO8601(txn[txn.size()-allowed]["time"]) > window)
-    //         std::cout << "Returning truee\n";
-    //     else
-    //         std::cout << "Returning falsee\n";
-    // }
-    return ((int)(txn.size()-allowed) < 0)? false :
-        (long long)ParseISO8601(incoming_transaction["time"]) - ((long long)ParseISO8601(txn[txn.size()-allowed]["time"]) > window);
+bool IsTransactionFrequent(const std::vector<nlohmann::json> &txn, const nlohmann::json incoming_transaction, const int window = kFrequencyWindow, const int allowed = kMaxFrequency) {
+    const int lower_limit_idx = txn.size() - allowed;
+    return (lower_limit_idx < 0)? false :
+        ((long long)ParseISO8601(incoming_transaction["time"]) - ((long long)ParseISO8601(txn[lower_limit_idx]["time"])) < window);
 }
 
-// 
-bool IsTransactionSimilar(const std::unordered_map<std::string, std::vector<nlohmann::json> > map_by_txn, nlohmann::json incoming_transaction) {
-    // Check if hash of incomin_transaction is present in txn.
+// Function that receives a hashmap separating transactions by value and incoming_transaction which returns a boolean
+// indicating whether the transaction is similar according to specified business rules. 
+bool IsTransactionSimilar(const std::unordered_map<std::string, std::vector<nlohmann::json> > map_by_txn, const nlohmann::json incoming_transaction, const int window = kRepeatedWindow, const int allowed = kMaxRepetition) {
+    // Check if hash of incoming_transaction is present in txn.
     std::stringstream ss;
-    for (auto& el : incoming_transaction.items()) {
+    for (const auto& el : incoming_transaction.items()) {
         if(el.key() != "time") {
             ss << el.key() << ":" << el.value() << ":";
         }
     }
     if(map_by_txn.count(ss.str())) {
-        return IsTransactionFrequent(map_by_txn.at(ss.str()), incoming_transaction, kRepeatedWindow, kMaxRepetition);
+        return IsTransactionFrequent(map_by_txn.at(ss.str()), incoming_transaction, window, allowed);
     } 
     return false; 
 }

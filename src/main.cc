@@ -20,7 +20,7 @@ void HandleAccountCreation(nlohmann::json user_json) {
     // }
 
     // Veri
-    if (users.size() == 0) {
+    if (users.empty()) {
         users.push_back(User(user_json));
     } else {
         output["violations"].push_back(ErrorToViolation(kAccountAlreadyInitialized));
