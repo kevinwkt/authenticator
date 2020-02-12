@@ -1,27 +1,18 @@
-# Makefile for Writing Make Files Example
-
-# *****************************************************
-# Variables to control Makefile operation
-
 CXX = g++
-CXXFLAGS = -Wall -g
+CXXFLAGS = -Wall -g -std=c++11
+TARGET = main.cc
+TESTTARGET = utils_test.cc
+IDIR = include/
+LDIR = lib/
+INCLUDE = -I $(IDIR)
+LIB = -I $(LDIR)
+SOURCE = ./src/
 
-BUILD    := ./build
+main:
+	$(CXX) $(CXXFLAGS) -o main $(SOURCE)$(TARGET) $(INCLUDE) $(LIB)
 
-# ****************************************************
-# Targets needed to bring the executable up to date
-
-main: main.o Point.o Rectangle.o
-	$(CXX) $(CXXFLAGS) -o main main.o Point.o Rectangle.o
-
-# The main.o target can be written more simply
-
-main.o: main.cpp Point.h Rectangle.h
-	$(CXX) $(CXXFLAGS) -c main.cpp
-
-Point.o: Point.h
-
-Rectangle.o: Rectangle.h Point.h
+test: 
+	$(CXX) $(CXXFLAGS) -o test $(IDIR)$(TESTTARGET) $(INCLUDE) $(LIB)
 
 clean:
-	rm -Rf ./bin
+	rm -f *.o test main
