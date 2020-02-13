@@ -1,5 +1,13 @@
 # Authenticator
 
+For most part I tried to utilize stdlib instead of elaborated Boost Libs due to the simplicity and not to have dependencies. The only dependency for this project can be seen in /lib and are *.hpp files for JSON object handlers for parsing streams and obj management along with a testing framework called catch. Both the dependencies can be found in the following links:
+
+JSON:
+https://github.com/nlohmann/json
+
+Catch:
+https://github.com/catchorg/Catch2
+
 ## Requirements
 
 Requirements for this project are the following:
