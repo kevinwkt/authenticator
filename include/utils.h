@@ -1,9 +1,6 @@
 #ifndef utils_h
 #define utils_h
 
-#include "globals.h"
-#include "json.hpp"
-
 #include <algorithm>
 #include <ctime>
 #include <iostream>
@@ -12,6 +9,10 @@
 #include <stdio.h>
 #include <string>
 #include <vector>
+
+#include "json.hpp"
+
+#include "globals.h"
 
 // Converts error enum into corresponding violation message.
 std::string ErrorToViolation(GenericErrors error) {
@@ -55,9 +56,6 @@ std::time_t ParseISO8601(const std::string &dateStr) {
 // Firstly verifies if window is filled by calculating lower_limit_idx. Then
 // verifies that given the last kMaxFrequency, kFrequencyWindow has not passed
 // (meaning it violates business rules).
-// Edge case happens when there are multiple transactions with the same
-// timelines. For this we verify that none of the transactions on the left side
-// has the same time. If found, returns false.
 bool IsTransactionFrequent(const std::vector<nlohmann::json> &txn,
                            const nlohmann::json incoming_transaction,
                            const int window = kFrequencyWindow,

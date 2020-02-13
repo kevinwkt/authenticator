@@ -1,12 +1,12 @@
 #define CATCH_CONFIG_MAIN
 
+#include <iostream>
+
 #include "catch.hpp"
 #include "json.hpp"
 
 #include "globals.h"
 #include "utils.h"
-
-#include <iostream>
 
 TEST_CASE("ErrorToViolation") {
   SECTION("Make sure each enum has the corresponding correct message") {

@@ -3,22 +3,17 @@
 #include <string>
 #include <unordered_map>
 
-#include "globals.h"
 #include "json.hpp"
+
+#include "globals.h"
 #include "utils.h"
 
 std::vector<User> users;
 std::stringstream ss;
-// User current_user;
 
 void HandleAccountCreation(nlohmann::json user_json) {
   nlohmann::json output;
   output["violations"] = std::vector<std::string>();
-
-  // For scaling multiple users.
-  // if(isAccountValid(users, user_json)) {
-  //     users.push_back(user_request);
-  // }
 
   // Verify if current account is active.
   if (users.empty()) {
@@ -70,9 +65,6 @@ void HandleTransactionCreation(nlohmann::json transaction_json) {
 
     // Accept transaction.
     if (output["violations"].empty()) {
-      // std::cout << "Adding transaction to user: \n";
-      // std::cout << transaction_json.dump() << "\n";
-
       // Add transactions to user profile.
       current_user.sequentialTransactions.push_back(transaction_json);
 
@@ -88,13 +80,9 @@ void HandleTransactionCreation(nlohmann::json transaction_json) {
       std::stringstream().swap(ss);
 
       // Update account balance to user.
-      // std::cout << "Previous balance: " <<
-      // current_user->account["available-limit"] << "\n";
       current_user.account["available-limit"] =
           (unsigned long long)current_user.account["available-limit"] -
           (unsigned long long)transaction_json["amount"];
-      // std::cout << "Updated balance: " <<
-      // current_user->account["available-limit"] << "\n";
     }
 
     // Set account details as output json.
