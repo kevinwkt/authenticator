@@ -52,26 +52,6 @@ std::time_t ParseISO8601(const std::string &dateStr) {
   return timegm(&time);
 }
 
-// Checks if an expected unix time is present in a vector from left_idx to
-// right_idx. Basically a binary_search. O(logn).
-bool IsTimestampPresent(const std::vector<nlohmann::json> &txn,
-                        const int left_idx, const int right_idx,
-                        const long long target) {
-  if (right_idx >= left_idx && left_idx >= 0 && right_idx < txn.size()) {
-    int mid_idx = left_idx + (right_idx - left_idx) / 2;
-    const long long mid_unix_time = ParseISO8601(txn[mid_idx]["time"]);
-
-    if (mid_unix_time == target)
-      return true;
-
-    if (mid_unix_time > target)
-      return IsTimestampPresent(txn, left_idx, mid_idx - 1, target);
-
-    return IsTimestampPresent(txn, mid_idx + 1, right_idx, target);
-  }
-  return false;
-}
-
 // Firstly verifies if window is filled by calculating lower_limit_idx. Then
 // verifies that given the last kMaxFrequency, kFrequencyWindow has not passed
 // (meaning it violates business rules).
@@ -91,8 +71,7 @@ bool IsTransactionFrequent(const std::vector<nlohmann::json> &txn,
   const long long incoming_time_unix =
       ParseISO8601(incoming_transaction["time"]);
   const long long lower_limit_unix = ParseISO8601(txn[lower_limit_idx]["time"]);
-  return ((incoming_time_unix - lower_limit_unix) < window) &&
-         (!IsTimestampPresent(txn, 0, lower_limit_idx - 1, lower_limit_unix));
+  return (incoming_time_unix - lower_limit_unix) < window;
 }
 
 // Hashes incoming transaction to make a uuid and verifies using

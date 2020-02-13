@@ -4,9 +4,9 @@
 
 Requirements for this project are the following:
 
-* cmake
+* make
 * docker
-* c++ compiler supporting c++11 with stdlib (g++, clang++, apple-clang++)
+* clang++ or any c++ compiler supporting c++11 with stdlib (g++, clang++, apple-clang++)
 
 ## Usage
 
@@ -30,10 +30,27 @@ clang++ -std=c++11 -o test include/utils_test.cc -I include -I lib
 
 ### Makefile
 
+Make sure you have clang++ for Makefile.
+
+```
+make main
+./main
+```
+
+```
+make test
+./test
+```
 
 ### Docker
 
+```
+docker build . -t authenticator:1.0.0
+docker run --rm -it authenticator:1.0.0
+```
 ## Description
+
+**Complexity O(1) for both ```IsTransactionFrequent``` and ```IsTransactionSimilar```.**
 
 In this section I will justify/explain the decisions taken in terms of data-structures/algorithms/design-patterns in this project. Given the requirements in the pdf there were 2 main entities: "account" and "transaction".
 
@@ -54,7 +71,7 @@ As mentioned before "account" and "transactionn" are represented as json objects
 
 "sequentialTransactions" is just a vector of sequential (by time) transactions for a single user which is used mostly for the business rule ```high-frequency-small-interval```. This violation is managed by utilizing the function ```IsTransactionFrequent``` explained in the following.
 
-```IsTransactionFrequent``` is a simple fuction which has the **caveat that transactions has to be sequential and that if a past transaction is to be added into the system, it would have the big O complexity of O(n) given that we are utilizing a std::vector.** The code can be seen in the following:
+```IsTransactionFrequent``` is a simple fuction with complexity of O(1) however we need to take into account some caveats. **Transactions have to be sequential and if a past transaction is to be added into the system, it would have the big O complexity of O(n) given that we are utilizing a std::vector.** The code can be seen in the following:
 ```
 bool IsTransactionFrequent(const std::vector<nlohmann::json> &txn,
                            const nlohmann::json incoming_transaction,
@@ -69,24 +86,22 @@ bool IsTransactionFrequent(const std::vector<nlohmann::json> &txn,
   const long long incoming_time_unix =
       ParseISO8601(incoming_transaction["time"]);
   const long long lower_limit_unix = ParseISO8601(txn[lower_limit_idx]["time"]);
-  return ((incoming_time_unix - lower_limit_unix) < window) &&
-         (!IsTimestampPresent(txn, 0, lower_limit_idx - 1, lower_limit_unix));
+  return (incoming_time_unix - lower_limit_unix) < window;
 }
 ```
 
-These simple lines of code focus on finding the kMaxFrequency past transaction and checking whether or not the current transaction violates this constraint. However, there is an edge case where this algorithm does not take into account which is the following:
+These simple lines of code focus on finding the kMaxFrequency past transaction and checking whether or not the current transaction violates this constraint. Explanation for this can be seen in the following: 
 
 ```
-Assuming time goes from 0 - 10 (s) and kMaxFrequency=3 kFequencyWindow=4(s)...
-Given std::vector<int> txn = { 1 1 1 2 3 }, if incoming transaction has a timestamp of 4:
-We would be checking for index txn.size()(5)-allowed(3) meaning we would be comparing incoming 4 with txn[2] which would be the third '1' in txn.
+Assuming time goes from 0 - 10 (s) and kMaxFrequency=3 kFequencyWindow=3(s)...
+Given std::vector<int> txn = { 2 2 3 4 }, if incoming transaction has a timestamp of 5:
+We would be checking for index txn.size()(4)-kFequencyWindow(3) meaning we would be comparing incoming 5 with txn[1] which would be the second '2' in txn.
 
-Given that incoming_time_unix(4) - lower_limit_unix(1) is 3 which is smaller than 4.
-HOWEVER if we look closely, there are 2 other '1's on the left of txn meaning that there were actually more transactions within the same time window.
+This gives that incoming_time_unix(5) - txn[1](2) is 3 which is equal or greater than 3. This would mean IsTransactionFrequent would return ```false``` allowing the incoming_transaction to be accepted. This is due to the fact that transactions are always sequential and if the comparing element violates the restriction, the elements on its left are all invalid and the elements on the right represents any number could be within the window.
 
-Because of this the second condition we had to make sure was to see if any element on the left side from the lower_limit_idx had the same timestamp. To do this we implemented IsTimestampPresent where if present, we return false.
 ```
 
-```IsTimestampPresent``` is just a simple implementation of a binary search which utilizes reference variables instead to save space however uses the recursion stack which shouldn't be a problem given -O2 optimizations. This allows the big O notation of ```IsTransactionFrequent``` to be O(logn).
 
-Lastly, ```IsTransactionSimilar``` focuses on mostly hashing a txn (disregarding the timestamp which is variable) and generating a uuid to separate transaction by it's similarity using a new datastructure ```specificTransactions```. Once transactions are separated by their similarity we utilize ```IsTransactionFrequent``` in order to see whether or not it violates the defined business rules.
+Lastly, ```IsTransactionSimilar``` focuses on mostly hashing a txn (disregarding the timestamp which is variable) and generating a uuid to separate transaction by it's similarity using a new datastructure ```specificTransactions```. Because of the hashmap property of lookup and insertion, the complexity is O(1). Once transactions are separated by their similarity we utilize ```IsTransactionFrequent``` in order to see whether or not it violates the defined business rules. **Caveats for this function would be the limits of hashing large json objects which can be circumvented by using or generating a uuid, and the use of hashing might result in some colliions in large systems which would need larger memory and better hash functions to avoid collisions.**
+
+It is also important to note that because we use UNIX time for seconds calculations milliseconds can not be taken into account for this implementation and that the maximum over/underflow to take into account would be (2^63)-1 given our use of long long for operations.

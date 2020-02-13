@@ -1,8 +1,9 @@
-FROM cpp-build-base:0.1.0 AS build
-WORKDIR /src
-COPY CMakeLists.txt main.cpp ./
-RUN cmake . && make
-FROM ubuntu:bionic
-WORKDIR /opt/hello-world
-COPY --from=build /src/helloworld ./
-CMD ["./helloworld"]
+FROM ubuntu:latest
+RUN apt-get -y update && apt-get install -y
+RUN apt-get -y install clang
+RUN apt-get -y install make 
+WORKDIR /authenticator
+COPY ./ /authenticator
+RUN make clean
+RUN make
+CMD ["./main"]

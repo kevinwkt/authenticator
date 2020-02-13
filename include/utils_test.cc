@@ -24,7 +24,7 @@ TEST_CASE("ErrorToViolation") {
 }
 
 TEST_CASE("ParseISO8601") {
-  // Create input dates in 2 different iso8601 forms.
+  // Create input dates in 2 different ISO8601 forms.
   const std::string standardIso1 = "1997-08-14T01:24:21+00:00";
   const std::string standardIso2 = "2019-02-13T10:00:00.000Z";
   const std::string standardIso3 = "2016-07-30T09:27:06+00:00";
@@ -42,67 +42,6 @@ TEST_CASE("ParseISO8601") {
     REQUIRE((unsigned long long)ParseISO8601(standardIso2) == standardUnix2);
     REQUIRE((unsigned long long)ParseISO8601(standardIso3) == standardUnix3);
     REQUIRE((unsigned long long)ParseISO8601(standardIso4) == standardUnix4);
-  }
-}
-
-TEST_CASE("IsTimestampPresent") {
-  // Create test vectors with transactions.
-  std::vector<nlohmann::json> transactions{
-      {
-          {"merchant", "a"},
-          {"amount", 10},
-          {"time", "2008-06-10T18:55:24.000z"},
-      },
-      {
-          {"merchant", "b"},
-          {"amount", 20},
-          {"time", "2008-06-10T18:55:25.000z"},
-      },
-      {
-          {"merchant", "c"},
-          {"amount", 20},
-          {"time", "2008-06-10T18:55:27.000z"},
-      },
-      {
-          {"merchant", "c"},
-          {"amount", 20},
-          {"time", "2008-06-10T18:55:28.000z"},
-      },
-      {
-          {"merchant", "c"},
-          {"amount", 20},
-          {"time", "2008-06-10T18:55:29.000z"},
-      },
-      {
-          {"merchant", "c"},
-          {"amount", 20},
-          {"time", "2008-06-10T18:55:30.000z"},
-      },
-  };
-
-  const long long err_transaction_unix = 1213124123;
-
-  const long long transaction1_unix = 1213124124;
-  const long long transaction6_unix = 1213124130;
-
-  SECTION("Standard tests to verify happy path") {
-    REQUIRE(IsTimestampPresent(transactions, 0, transactions.size() - 1,
-                               err_transaction_unix) == false);
-    REQUIRE(IsTimestampPresent(transactions, 0, transactions.size() - 1,
-                               transaction1_unix) == true);
-    REQUIRE(IsTimestampPresent(transactions, 1, transactions.size() - 1,
-                               transaction1_unix) == false);
-    REQUIRE(IsTimestampPresent(transactions, 0, transactions.size() - 2,
-                               transaction6_unix) == false);
-  }
-
-  SECTION("Verify erroneous index inputs") {
-    REQUIRE(IsTimestampPresent(transactions, -1, transactions.size() - 1,
-                               err_transaction_unix) == false);
-    REQUIRE(IsTimestampPresent(transactions, 0, transactions.size(),
-                               transaction1_unix) == false);
-    REQUIRE(IsTimestampPresent(transactions, 1, 0, transaction1_unix) == false);
-    REQUIRE(IsTimestampPresent(transactions, 5, 6, transaction6_unix) == false);
   }
 }
 
